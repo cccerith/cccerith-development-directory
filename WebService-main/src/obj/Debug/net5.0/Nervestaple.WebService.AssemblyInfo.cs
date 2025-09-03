@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Wraps Nervestaple.EntityFrameworkCore to help create database backed web services" +
     "")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.4.4.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.4.4-rc+dfce93499b0c6e3606fe71efd405fd2505f1a388")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.4.4-rc+77dacf59545ebe846a6a637f8c33d89ea7647ebc")]
 [assembly: System.Reflection.AssemblyProductAttribute("Nervestaple.WebService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Nervestaple.WebService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.4.4.0")]

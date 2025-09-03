@@ -43,7 +43,9 @@
 				"bierner.markdown-preview-github-styles",
 				"fabiospampinato.vscode-open-in-github",
 				"grzegorzjudas.vscode-gitbuild",
-				"fabiospampinato.vscode-github-notifications-bell"
+				"fabiospampinato.vscode-github-notifications-bell",
+				"ms-azuretools.vscode-azure-mcp-server",
+				"TeamsDevApp.ms-teams-vscode-extension"
 			]
 		}
 	}

@@ -8,19 +8,19 @@
     "net9.0": []
   },
   "packageFolders": {
-    "/home/developer/.nuget/packages/": {}
+    "/home/codespace/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/media/developer/nsl/remote-dev-project/dotnet-core-docker/App/NetCore.Docker~.csproj",
+      "projectUniqueName": "/workspaces/vsproject-development-directory/dotnet-core-docker/App/NetCore.Docker~.csproj",
       "projectName": "NetCore.Docker~",
-      "projectPath": "/media/developer/nsl/remote-dev-project/dotnet-core-docker/App/NetCore.Docker~.csproj",
-      "packagesPath": "/home/developer/.nuget/packages/",
-      "outputPath": "/media/developer/nsl/remote-dev-project/dotnet-core-docker/App/obj/",
+      "projectPath": "/workspaces/vsproject-development-directory/dotnet-core-docker/App/NetCore.Docker~.csproj",
+      "packagesPath": "/home/codespace/.nuget/packages/",
+      "outputPath": "/workspaces/vsproject-development-directory/dotnet-core-docker/App/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/home/developer/.nuget/NuGet/NuGet.Config"
+        "/home/codespace/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -42,9 +42,9 @@
       "restoreAuditProperties": {
         "enableAudit": "true",
         "auditLevel": "low",
-        "auditMode": "all"
+        "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.100"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -65,7 +65,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.100-rc.2.24474.11/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

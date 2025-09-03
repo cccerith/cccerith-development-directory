@@ -1,0 +1,5 @@
+/workspaces/vsproject-development-directory/obj/Debug/net9.0/vsproject-development-directory.GeneratedMSBuildEditorConfig.editorconfig
+/workspaces/vsproject-development-directory/obj/Debug/net9.0/vsproject-development-directory.AssemblyInfoInputs.cache
+/workspaces/vsproject-development-directory/obj/Debug/net9.0/vsproject-development-directory.AssemblyInfo.cs
+/workspaces/vsproject-development-directory/obj/Debug/net9.0/vsproject-development-directory.csproj.CoreCompileInputs.cache
+/workspaces/vsproject-development-directory/obj/Debug/net9.0/vsproject-development-directory.sourcelink.json

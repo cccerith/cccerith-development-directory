@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "FioJ0y6Thx4=",
+  "dgSpecHash": "UJy2W++YgH0=",
   "success": true,
-  "projectFilePath": "/media/developer/nsl/remote-dev-project/dotnet-core-docker/App/NetCore.Docker~.csproj",
+  "projectFilePath": "/workspaces/vsproject-development-directory/dotnet-core-docker/App/NetCore.Docker~.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
