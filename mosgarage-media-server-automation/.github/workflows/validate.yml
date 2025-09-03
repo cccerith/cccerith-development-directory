@@ -1,0 +1,228 @@
+name: 🔍 Validate Infrastructure Code
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  validate-ansible:
+    name: 🤖 Validate Ansible Playbooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible ansible-lint yamllint
+
+      - name: Validate Ansible syntax
+        run: |
+          find ansible/playbooks -name "*.yml" -exec ansible-playbook --syntax-check {} \;
+
+      - name: Run Ansible Lint
+        run: |
+          ansible-lint ansible/playbooks/ || true
+
+      - name: Validate YAML files
+        run: |
+          yamllint -d '{extends: relaxed, rules: {line-length: {max: 120}, trailing-spaces: enable}}' ansible/
+
+  validate-docker:
+    name: 🐳 Validate Docker Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: Validate Docker Compose syntax
+        run: |
+          cd docker
+          cp .env.template .env
+          docker-compose config
+
+      - name: Check for security issues in Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: docker/Dockerfile
+        continue-on-error: true
+
+  validate-scripts:
+    name: 📜 Validate Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: |
+          find scripts/ -name "*.sh" -exec shellcheck {} \;
+
+      - name: Check script permissions
+        run: |
+          find scripts/ -name "*.sh" -exec test -x {} \; || {
+            echo "Some scripts are not executable"
+            find scripts/ -name "*.sh" ! -executable
+            exit 1
+          }
+
+  validate-documentation:
+    name: 📚 Validate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install markdownlint
+        run: |
+          npm install -g markdownlint-cli
+
+      - name: Lint Markdown files
+        run: |
+          markdownlint docs/ *.md --ignore node_modules || true
+
+      - name: Check for broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+        continue-on-error: true
+
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+
+      - name: Check for secrets in code
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --debug --only-verified
+
+  integration-test:
+    name: 🧪 Integration Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Create test environment file
+        run: |
+          cd docker
+          cp .env.template .env
+          sed -i 's/your_protonvpn_username/test_user/' .env
+          sed -i 's/your_protonvpn_password/test_pass/' .env
+
+      - name: Test Docker Compose startup (dry run)
+        run: |
+          cd docker
+          docker-compose config
+          # Don't actually start services in CI (no VPN credentials)
+
+      - name: Test Ansible playbook syntax
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          ansible-playbook --syntax-check ansible/playbooks/*.yml
+
+  validate-vm-config:
+    name: 🖥️ Validate VM Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Vagrantfile
+        run: |
+          cd vm-testing
+          # Basic syntax validation
+          ruby -c Vagrantfile
+
+      - name: Check VM configuration
+        run: |
+          cd vm-testing
+          grep -q "ubuntu/jammy64" Vagrantfile
+          grep -q "4096" Vagrantfile  # Memory check
+
+  compatibility-matrix:
+    name: 🔄 OS Compatibility Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os-version: 
+          - ubuntu:20.04
+          - ubuntu:22.04
+          - debian:11
+          - debian:12
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test on ${{ matrix.os-version }}
+        run: |
+          docker run --rm -v $PWD:/workspace -w /workspace ${{ matrix.os-version }} bash -c "
+            apt-get update -qq
+            apt-get install -y curl wget
+            # Test basic requirements
+            bash scripts/bootstrap.sh --help > /dev/null
+          "
+
+  pr-validation:
+    name: ✅ PR Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-ansible, validate-docker, validate-scripts, validate-documentation, security-scan]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: PR Validation Summary
+        run: |
+          echo "## 🎉 PR Validation Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Ansible playbooks validated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker configuration validated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Shell scripts validated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Documentation validated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security scan completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ready for review! 🚀" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,231 @@
+# Media Server Automation - Comprehensive .gitignore
+
+# ===================================
+# Sensitive Files (NEVER COMMIT THESE)
+# ===================================
+
+# Environment files with real credentials
+.env
+*.env.local
+*.env.production
+secrets.yml
+secrets.yaml
+
+# VPN configuration files
+*.ovpn
+*.conf
+!proton.conf.template
+wireguard/*.conf
+
+# SSH keys and certificates
+*.key
+*.pem
+*.crt
+*.p12
+id_rsa*
+authorized_keys
+
+# Backup files that might contain sensitive data
+*backup*.sql
+*backup*.db
+*.dump
+
+# ===================================
+# System & Runtime Files
+# ===================================
+
+# Logs
+*.log
+logs/
+*.log.*
+log/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Cache directories
+.cache/
+*.cache
+__pycache__/
+*.pyc
+*.pyo
+
+# ===================================
+# Docker & Container Related
+# ===================================
+
+# Docker volumes and data
+docker/volumes/
+docker/configs/*/
+!docker/configs/.gitkeep
+
+# Container logs and runtime data
+docker/data/
+docker/logs/
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.local.yml
+
+# ===================================
+# Ansible Related
+# ===================================
+
+# Ansible vault files
+vault.yml
+*.vault
+.vault_pass
+
+# Ansible retry files
+*.retry
+
+# Dynamic inventory
+inventory/dynamic/
+
+# Host-specific variables
+ansible/host_vars/
+ansible/group_vars/production/
+ansible/group_vars/staging/
+
+# ===================================
+# Virtual Machines & Testing
+# ===================================
+
+# Vagrant
+.vagrant/
+*.box
+
+# VirtualBox
+*.vdi
+*.vmdk
+*.vbox
+oracle_vbox_2016.asc
+virtualbox-*.deb
+
+# VMware
+*.vmx
+*.vmxf
+*.nvram
+*.vmsd
+
+# ===================================
+# IDE & Editor Files
+# ===================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
+*.swp
+*.swo
+.vim/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ===================================
+# Project Specific
+# ===================================
+
+# Generated documentation
+docs/_build/
+site/
+
+# Test results
+test-results/
+coverage/
+.coverage
+configs-test/
+*.test
+
+# Backup directories
+backups/
+*.backup
+backup_*/
+
+# Local development files
+local/
+dev/
+*.local
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===================================
+# Archive Files
+# ===================================
+
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# But keep example archives in docs
+!docs/**/*.zip
+!docs/**/*.tar.gz
+
+# ===================================
+# Node.js (if any)
+# ===================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ===================================
+# Python (if any)
+# ===================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# ===================================
+# Keep Important Template Files
+# ===================================
+
+# Keep template files (these should be committed)
+!*.template
+!*.example
+!docker/.env.template
+
+# Keep documentation examples
+!docs/examples/
+
+# Keep sample configurations
+!sample-configs/
+
+# Keep GitHub templates
+!.github/

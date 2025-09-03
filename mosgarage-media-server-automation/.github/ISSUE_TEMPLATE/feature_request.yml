@@ -1,0 +1,131 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["feature", "needs-review"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! ✨
+        
+        Please search existing issues before creating a new one to avoid duplicates.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify you have completed these steps
+      options:
+        - label: I have searched for existing feature requests
+          required: true
+        - label: I have read the documentation
+          required: true
+        - label: This is a feature request, not a bug report
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - New Service Integration
+        - VPN Provider Support
+        - Monitoring/Alerting
+        - Backup/Restore
+        - Security Enhancement
+        - Documentation
+        - Testing/CI
+        - Performance
+        - User Experience
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What problem does this feature solve?
+      placeholder: "I'm frustrated when... It would be helpful if..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What would you like to see implemented?
+      placeholder: "I would like to see... This could work by..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered other approaches?
+      placeholder: "I've considered... Another option might be..."
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my use case
+        - Critical - Blocking my usage
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Low - Simple configuration change
+        - Medium - New service or integration
+        - High - Major architectural change
+        - Unknown - Not sure
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples/References
+      description: Any examples, mockups, or references that might help?
+      placeholder: |
+        - Similar implementation in project X
+        - Screenshot or mockup
+        - Link to documentation
+
+  - type: textarea
+    id: use_cases
+    attributes:
+      label: Use Cases
+      description: Who would benefit from this feature and how?
+      placeholder: |
+        - Users with multiple VPN providers
+        - People using cloud storage
+        - Advanced monitoring needs
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I can help with requirements gathering
+        - label: I can help with testing
+        - label: I can submit a pull request
+        - label: I can help with documentation
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: "This feature would complement... It relates to..."

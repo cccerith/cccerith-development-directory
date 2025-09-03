@@ -1,0 +1,115 @@
+{
+  "source": {
+    "type": "image",
+    "image": {
+      "name": "docker/disk-usage-extension",
+      "digest": "sha256:f4c95478a537cbf6e238f6e84599a8a73bd8cd8e525ebcef65db50e225e5ebf4",
+      "tags": [
+        "0.2.9"
+      ],
+      "manifest": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "config": {
+          "mediaType": "application/vnd.docker.container.image.v1+json",
+          "size": 5923,
+          "digest": "sha256:0f1db5eed7604363bdf9cf1f946f28848fd0d63648b624929ead078f1d8e4c00"
+        },
+        "layers": [
+          {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 207,
+            "digest": "sha256:61cdcd3f623824a85efbc22088ec13c2e85c34d6acf4df225226c9a7bc57f045"
+          },
+          {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 939,
+            "digest": "sha256:1dd88d20d89cda2efce1065778a2ea560099b1aa79d568aa01674f0effc90d6a"
+          },
+          {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 773273,
+            "digest": "sha256:21a721a35a86587524406775ba501100e293470433fd40753fe2b544d035c7b7"
+          }
+        ]
+      },
+      "config": {
+        "architecture": "amd64",
+        "created": "2024-02-14T08:55:07.783992198Z",
+        "history": [
+          {
+            "created": "2024-02-14T08:53:43.114923952Z",
+            "created_by": "LABEL org.opencontainers.image.title=Disk Usage org.opencontainers.image.description=Optimize your disk space by removing unused objects from Docker Desktop. org.opencontainers.image.vendor=Docker Inc. com.docker.desktop.extension.api.version=>= 0.2.3 com.docker.extension.publisher-url=https://www.docker.com/ com.docker.extension.screenshots=[     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/1-disk-usage.png\", \"alt\": \"Disk usage stats\"},     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/2-reclaim-popup.png\", \"alt\": \"Reclaim space popup\"},     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/3-space-reclaimed.png\", \"alt\": \"Space reclaimed successfully\"}     ] com.docker.extension.detailed-description=<p>Disk Usage displays and categorizes the disk space used by Docker. It also shows you how much of the disk space is reclaimable and provides an easy one-click experience to reclaim space.</p>     <h3 id=who-might-find-it-useful->Who might find it useful?</h3>     <ul>     <li><p>If you need more visibility about how much space Docker resources (e.g. images, volumes, etc) are using and how much of it is reclaimable.</p>     </li>     <li><p>If you are looking for a quick way to clean up disk space used by Docker.</p>     </li>     </ul>     <h3 id=how-it-works>How it works</h3>     <p>You can reclaim the disk space used by Docker by removing:</p>     <ul>     <li>Stopped containers</li>     <li>Unused images</li>     <li>Dangling images</li>     <li>Build cache</li>     <li>Unused volumes</li>     </ul>      com.docker.extension.additional-urls=[{\"title\":\"Terms of usage\",\"url\":\"https://www.docker.com/legal/docker-subscription-service-agreement/\"}] com.docker.desktop.extension.icon=https://docker-extension-screenshots.s3.us-east-1.amazonaws.com/disk-usage-extension/hard-drive.svg com.docker.extension.changelog=<ul>     <li>Link terms of usage.</li>     </ul>",
+            "comment": "buildkit.dockerfile.v0",
+            "empty_layer": true
+          },
+          {
+            "created": "2024-02-14T08:53:43.114923952Z",
+            "created_by": "COPY metadata.json . # buildkit",
+            "comment": "buildkit.dockerfile.v0"
+          },
+          {
+            "created": "2024-02-14T08:53:43.144334908Z",
+            "created_by": "COPY hard-drive.svg . # buildkit",
+            "comment": "buildkit.dockerfile.v0"
+          },
+          {
+            "created": "2024-02-14T08:55:07.783992198Z",
+            "created_by": "COPY /ui/build ui # buildkit",
+            "comment": "buildkit.dockerfile.v0"
+          }
+        ],
+        "os": "linux",
+        "rootfs": {
+          "type": "layers",
+          "diff_ids": [
+            "sha256:deffb62aa912a02d4ff4f4de858f69fecdb0e3aa5d588fef8a310f04b24b852e",
+            "sha256:d41f2c34b204f38c41a8dae530bec3685f9977180665c0d0d70010fe21f8c29f",
+            "sha256:4a7a680f9d9504962f1d204df36ebc420a9b5159b3fa9848368574bacb77c18b"
+          ]
+        },
+        "config": {
+          "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          ],
+          "Labels": {
+            "com.docker.desktop.extension.api.version": ">= 0.2.3",
+            "com.docker.desktop.extension.icon": "https://docker-extension-screenshots.s3.us-east-1.amazonaws.com/disk-usage-extension/hard-drive.svg",
+            "com.docker.extension.additional-urls": "[{\"title\":\"Terms of usage\",\"url\":\"https://www.docker.com/legal/docker-subscription-service-agreement/\"}]",
+            "com.docker.extension.changelog": "<ul>     <li>Link terms of usage.</li>     </ul>",
+            "com.docker.extension.detailed-description": "<p>Disk Usage displays and categorizes the disk space used by Docker. It also shows you how much of the disk space is reclaimable and provides an easy one-click experience to reclaim space.</p>     <h3 id=who-might-find-it-useful->Who might find it useful?</h3>     <ul>     <li><p>If you need more visibility about how much space Docker resources (e.g. images, volumes, etc) are using and how much of it is reclaimable.</p>     </li>     <li><p>If you are looking for a quick way to clean up disk space used by Docker.</p>     </li>     </ul>     <h3 id=how-it-works>How it works</h3>     <p>You can reclaim the disk space used by Docker by removing:</p>     <ul>     <li>Stopped containers</li>     <li>Unused images</li>     <li>Dangling images</li>     <li>Build cache</li>     <li>Unused volumes</li>     </ul>     ",
+            "com.docker.extension.publisher-url": "https://www.docker.com/",
+            "com.docker.extension.screenshots": "[     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/1-disk-usage.png\", \"alt\": \"Disk usage stats\"},     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/2-reclaim-popup.png\", \"alt\": \"Reclaim space popup\"},     {\"url\": \"https://docker-extension-screenshots.s3.amazonaws.com/disk-usage-extension/3-space-reclaimed.png\", \"alt\": \"Space reclaimed successfully\"}     ]",
+            "org.opencontainers.image.description": "Optimize your disk space by removing unused objects from Docker Desktop.",
+            "org.opencontainers.image.revision": "b9df55b73bab30469aeb96dcaa94afc99128d820",
+            "org.opencontainers.image.source": "https://github.com/docker/disk-usage-extension",
+            "org.opencontainers.image.title": "Disk Usage",
+            "org.opencontainers.image.vendor": "Docker Inc."
+          },
+          "WorkingDir": "/"
+        }
+      },
+      "raw_manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjo1OTIzLCJkaWdlc3QiOiJzaGEyNTY6MGYxZGI1ZWVkNzYwNDM2M2JkZjljZjFmOTQ2ZjI4ODQ4ZmQwZDYzNjQ4YjYyNDkyOWVhZDA3OGYxZDhlNGMwMCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjoyMDcsImRpZ2VzdCI6InNoYTI1Njo2MWNkY2QzZjYyMzgyNGE4NWVmYmMyMjA4OGVjMTNjMmU4NWMzNGQ2YWNmNGRmMjI1MjI2YzlhN2JjNTdmMDQ1In0seyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmltYWdlLnJvb3Rmcy5kaWZmLnRhci5nemlwIiwic2l6ZSI6OTM5LCJkaWdlc3QiOiJzaGEyNTY6MWRkODhkMjBkODljZGEyZWZjZTEwNjU3NzhhMmVhNTYwMDk5YjFhYTc5ZDU2OGFhMDE2NzRmMGVmZmM5MGQ2YSJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjc3MzI3MywiZGlnZXN0Ijoic2hhMjU2OjIxYTcyMWEzNWE4NjU4NzUyNDQwNjc3NWJhNTAxMTAwZTI5MzQ3MDQzM2ZkNDA3NTNmZTJiNTQ0ZDAzNWM3YjcifV19",
+      "raw_config": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsImNvbmZpZyI6eyJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiV29ya2luZ0RpciI6Ii8iLCJMYWJlbHMiOnsiY29tLmRvY2tlci5kZXNrdG9wLmV4dGVuc2lvbi5hcGkudmVyc2lvbiI6Ilx1MDAzZT0gMC4yLjMiLCJjb20uZG9ja2VyLmRlc2t0b3AuZXh0ZW5zaW9uLmljb24iOiJodHRwczovL2RvY2tlci1leHRlbnNpb24tc2NyZWVuc2hvdHMuczMudXMtZWFzdC0xLmFtYXpvbmF3cy5jb20vZGlzay11c2FnZS1leHRlbnNpb24vaGFyZC1kcml2ZS5zdmciLCJjb20uZG9ja2VyLmV4dGVuc2lvbi5hZGRpdGlvbmFsLXVybHMiOiJbe1widGl0bGVcIjpcIlRlcm1zIG9mIHVzYWdlXCIsXCJ1cmxcIjpcImh0dHBzOi8vd3d3LmRvY2tlci5jb20vbGVnYWwvZG9ja2VyLXN1YnNjcmlwdGlvbi1zZXJ2aWNlLWFncmVlbWVudC9cIn1dIiwiY29tLmRvY2tlci5leHRlbnNpb24uY2hhbmdlbG9nIjoiXHUwMDNjdWxcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlTGluayB0ZXJtcyBvZiB1c2FnZS5cdTAwM2MvbGlcdTAwM2UgICAgIFx1MDAzYy91bFx1MDAzZSIsImNvbS5kb2NrZXIuZXh0ZW5zaW9uLmRldGFpbGVkLWRlc2NyaXB0aW9uIjoiXHUwMDNjcFx1MDAzZURpc2sgVXNhZ2UgZGlzcGxheXMgYW5kIGNhdGVnb3JpemVzIHRoZSBkaXNrIHNwYWNlIHVzZWQgYnkgRG9ja2VyLiBJdCBhbHNvIHNob3dzIHlvdSBob3cgbXVjaCBvZiB0aGUgZGlzayBzcGFjZSBpcyByZWNsYWltYWJsZSBhbmQgcHJvdmlkZXMgYW4gZWFzeSBvbmUtY2xpY2sgZXhwZXJpZW5jZSB0byByZWNsYWltIHNwYWNlLlx1MDAzYy9wXHUwMDNlICAgICBcdTAwM2NoMyBpZD13aG8tbWlnaHQtZmluZC1pdC11c2VmdWwtXHUwMDNlV2hvIG1pZ2h0IGZpbmQgaXQgdXNlZnVsP1x1MDAzYy9oM1x1MDAzZSAgICAgXHUwMDNjdWxcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlXHUwMDNjcFx1MDAzZUlmIHlvdSBuZWVkIG1vcmUgdmlzaWJpbGl0eSBhYm91dCBob3cgbXVjaCBzcGFjZSBEb2NrZXIgcmVzb3VyY2VzIChlLmcuIGltYWdlcywgdm9sdW1lcywgZXRjKSBhcmUgdXNpbmcgYW5kIGhvdyBtdWNoIG9mIGl0IGlzIHJlY2xhaW1hYmxlLlx1MDAzYy9wXHUwMDNlICAgICBcdTAwM2MvbGlcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlXHUwMDNjcFx1MDAzZUlmIHlvdSBhcmUgbG9va2luZyBmb3IgYSBxdWljayB3YXkgdG8gY2xlYW4gdXAgZGlzayBzcGFjZSB1c2VkIGJ5IERvY2tlci5cdTAwM2MvcFx1MDAzZSAgICAgXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2MvdWxcdTAwM2UgICAgIFx1MDAzY2gzIGlkPWhvdy1pdC13b3Jrc1x1MDAzZUhvdyBpdCB3b3Jrc1x1MDAzYy9oM1x1MDAzZSAgICAgXHUwMDNjcFx1MDAzZVlvdSBjYW4gcmVjbGFpbSB0aGUgZGlzayBzcGFjZSB1c2VkIGJ5IERvY2tlciBieSByZW1vdmluZzpcdTAwM2MvcFx1MDAzZSAgICAgXHUwMDNjdWxcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlU3RvcHBlZCBjb250YWluZXJzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZVVudXNlZCBpbWFnZXNcdTAwM2MvbGlcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlRGFuZ2xpbmcgaW1hZ2VzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZUJ1aWxkIGNhY2hlXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZVVudXNlZCB2b2x1bWVzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2MvdWxcdTAwM2UgICAgICIsImNvbS5kb2NrZXIuZXh0ZW5zaW9uLnB1Ymxpc2hlci11cmwiOiJodHRwczovL3d3dy5kb2NrZXIuY29tLyIsImNvbS5kb2NrZXIuZXh0ZW5zaW9uLnNjcmVlbnNob3RzIjoiWyAgICAge1widXJsXCI6IFwiaHR0cHM6Ly9kb2NrZXItZXh0ZW5zaW9uLXNjcmVlbnNob3RzLnMzLmFtYXpvbmF3cy5jb20vZGlzay11c2FnZS1leHRlbnNpb24vMS1kaXNrLXVzYWdlLnBuZ1wiLCBcImFsdFwiOiBcIkRpc2sgdXNhZ2Ugc3RhdHNcIn0sICAgICB7XCJ1cmxcIjogXCJodHRwczovL2RvY2tlci1leHRlbnNpb24tc2NyZWVuc2hvdHMuczMuYW1hem9uYXdzLmNvbS9kaXNrLXVzYWdlLWV4dGVuc2lvbi8yLXJlY2xhaW0tcG9wdXAucG5nXCIsIFwiYWx0XCI6IFwiUmVjbGFpbSBzcGFjZSBwb3B1cFwifSwgICAgIHtcInVybFwiOiBcImh0dHBzOi8vZG9ja2VyLWV4dGVuc2lvbi1zY3JlZW5zaG90cy5zMy5hbWF6b25hd3MuY29tL2Rpc2stdXNhZ2UtZXh0ZW5zaW9uLzMtc3BhY2UtcmVjbGFpbWVkLnBuZ1wiLCBcImFsdFwiOiBcIlNwYWNlIHJlY2xhaW1lZCBzdWNjZXNzZnVsbHlcIn0gICAgIF0iLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UuZGVzY3JpcHRpb24iOiJPcHRpbWl6ZSB5b3VyIGRpc2sgc3BhY2UgYnkgcmVtb3ZpbmcgdW51c2VkIG9iamVjdHMgZnJvbSBEb2NrZXIgRGVza3RvcC4iLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UucmV2aXNpb24iOiJiOWRmNTViNzNiYWIzMDQ2OWFlYjk2ZGNhYTk0YWZjOTkxMjhkODIwIiwib3JnLm9wZW5jb250YWluZXJzLmltYWdlLnNvdXJjZSI6Imh0dHBzOi8vZ2l0aHViLmNvbS9kb2NrZXIvZGlzay11c2FnZS1leHRlbnNpb24iLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UudGl0bGUiOiJEaXNrIFVzYWdlIiwib3JnLm9wZW5jb250YWluZXJzLmltYWdlLnZlbmRvciI6IkRvY2tlciBJbmMuIn0sIk9uQnVpbGQiOm51bGx9LCJjcmVhdGVkIjoiMjAyNC0wMi0xNFQwODo1NTowNy43ODM5OTIxOThaIiwiaGlzdG9yeSI6W3siY3JlYXRlZCI6IjIwMjQtMDItMTRUMDg6NTM6NDMuMTE0OTIzOTUyWiIsImNyZWF0ZWRfYnkiOiJMQUJFTCBvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UudGl0bGU9RGlzayBVc2FnZSBvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UuZGVzY3JpcHRpb249T3B0aW1pemUgeW91ciBkaXNrIHNwYWNlIGJ5IHJlbW92aW5nIHVudXNlZCBvYmplY3RzIGZyb20gRG9ja2VyIERlc2t0b3AuIG9yZy5vcGVuY29udGFpbmVycy5pbWFnZS52ZW5kb3I9RG9ja2VyIEluYy4gY29tLmRvY2tlci5kZXNrdG9wLmV4dGVuc2lvbi5hcGkudmVyc2lvbj1cdTAwM2U9IDAuMi4zIGNvbS5kb2NrZXIuZXh0ZW5zaW9uLnB1Ymxpc2hlci11cmw9aHR0cHM6Ly93d3cuZG9ja2VyLmNvbS8gY29tLmRvY2tlci5leHRlbnNpb24uc2NyZWVuc2hvdHM9WyAgICAge1widXJsXCI6IFwiaHR0cHM6Ly9kb2NrZXItZXh0ZW5zaW9uLXNjcmVlbnNob3RzLnMzLmFtYXpvbmF3cy5jb20vZGlzay11c2FnZS1leHRlbnNpb24vMS1kaXNrLXVzYWdlLnBuZ1wiLCBcImFsdFwiOiBcIkRpc2sgdXNhZ2Ugc3RhdHNcIn0sICAgICB7XCJ1cmxcIjogXCJodHRwczovL2RvY2tlci1leHRlbnNpb24tc2NyZWVuc2hvdHMuczMuYW1hem9uYXdzLmNvbS9kaXNrLXVzYWdlLWV4dGVuc2lvbi8yLXJlY2xhaW0tcG9wdXAucG5nXCIsIFwiYWx0XCI6IFwiUmVjbGFpbSBzcGFjZSBwb3B1cFwifSwgICAgIHtcInVybFwiOiBcImh0dHBzOi8vZG9ja2VyLWV4dGVuc2lvbi1zY3JlZW5zaG90cy5zMy5hbWF6b25hd3MuY29tL2Rpc2stdXNhZ2UtZXh0ZW5zaW9uLzMtc3BhY2UtcmVjbGFpbWVkLnBuZ1wiLCBcImFsdFwiOiBcIlNwYWNlIHJlY2xhaW1lZCBzdWNjZXNzZnVsbHlcIn0gICAgIF0gY29tLmRvY2tlci5leHRlbnNpb24uZGV0YWlsZWQtZGVzY3JpcHRpb249XHUwMDNjcFx1MDAzZURpc2sgVXNhZ2UgZGlzcGxheXMgYW5kIGNhdGVnb3JpemVzIHRoZSBkaXNrIHNwYWNlIHVzZWQgYnkgRG9ja2VyLiBJdCBhbHNvIHNob3dzIHlvdSBob3cgbXVjaCBvZiB0aGUgZGlzayBzcGFjZSBpcyByZWNsYWltYWJsZSBhbmQgcHJvdmlkZXMgYW4gZWFzeSBvbmUtY2xpY2sgZXhwZXJpZW5jZSB0byByZWNsYWltIHNwYWNlLlx1MDAzYy9wXHUwMDNlICAgICBcdTAwM2NoMyBpZD13aG8tbWlnaHQtZmluZC1pdC11c2VmdWwtXHUwMDNlV2hvIG1pZ2h0IGZpbmQgaXQgdXNlZnVsP1x1MDAzYy9oM1x1MDAzZSAgICAgXHUwMDNjdWxcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlXHUwMDNjcFx1MDAzZUlmIHlvdSBuZWVkIG1vcmUgdmlzaWJpbGl0eSBhYm91dCBob3cgbXVjaCBzcGFjZSBEb2NrZXIgcmVzb3VyY2VzIChlLmcuIGltYWdlcywgdm9sdW1lcywgZXRjKSBhcmUgdXNpbmcgYW5kIGhvdyBtdWNoIG9mIGl0IGlzIHJlY2xhaW1hYmxlLlx1MDAzYy9wXHUwMDNlICAgICBcdTAwM2MvbGlcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlXHUwMDNjcFx1MDAzZUlmIHlvdSBhcmUgbG9va2luZyBmb3IgYSBxdWljayB3YXkgdG8gY2xlYW4gdXAgZGlzayBzcGFjZSB1c2VkIGJ5IERvY2tlci5cdTAwM2MvcFx1MDAzZSAgICAgXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2MvdWxcdTAwM2UgICAgIFx1MDAzY2gzIGlkPWhvdy1pdC13b3Jrc1x1MDAzZUhvdyBpdCB3b3Jrc1x1MDAzYy9oM1x1MDAzZSAgICAgXHUwMDNjcFx1MDAzZVlvdSBjYW4gcmVjbGFpbSB0aGUgZGlzayBzcGFjZSB1c2VkIGJ5IERvY2tlciBieSByZW1vdmluZzpcdTAwM2MvcFx1MDAzZSAgICAgXHUwMDNjdWxcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlU3RvcHBlZCBjb250YWluZXJzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZVVudXNlZCBpbWFnZXNcdTAwM2MvbGlcdTAwM2UgICAgIFx1MDAzY2xpXHUwMDNlRGFuZ2xpbmcgaW1hZ2VzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZUJ1aWxkIGNhY2hlXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2NsaVx1MDAzZVVudXNlZCB2b2x1bWVzXHUwMDNjL2xpXHUwMDNlICAgICBcdTAwM2MvdWxcdTAwM2UgICAgICBjb20uZG9ja2VyLmV4dGVuc2lvbi5hZGRpdGlvbmFsLXVybHM9W3tcInRpdGxlXCI6XCJUZXJtcyBvZiB1c2FnZVwiLFwidXJsXCI6XCJodHRwczovL3d3dy5kb2NrZXIuY29tL2xlZ2FsL2RvY2tlci1zdWJzY3JpcHRpb24tc2VydmljZS1hZ3JlZW1lbnQvXCJ9XSBjb20uZG9ja2VyLmRlc2t0b3AuZXh0ZW5zaW9uLmljb249aHR0cHM6Ly9kb2NrZXItZXh0ZW5zaW9uLXNjcmVlbnNob3RzLnMzLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tL2Rpc2stdXNhZ2UtZXh0ZW5zaW9uL2hhcmQtZHJpdmUuc3ZnIGNvbS5kb2NrZXIuZXh0ZW5zaW9uLmNoYW5nZWxvZz1cdTAwM2N1bFx1MDAzZSAgICAgXHUwMDNjbGlcdTAwM2VMaW5rIHRlcm1zIG9mIHVzYWdlLlx1MDAzYy9saVx1MDAzZSAgICAgXHUwMDNjL3VsXHUwMDNlIiwiY29tbWVudCI6ImJ1aWxka2l0LmRvY2tlcmZpbGUudjAiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyNC0wMi0xNFQwODo1Mzo0My4xMTQ5MjM5NTJaIiwiY3JlYXRlZF9ieSI6IkNPUFkgbWV0YWRhdGEuanNvbiAuICMgYnVpbGRraXQiLCJjb21tZW50IjoiYnVpbGRraXQuZG9ja2VyZmlsZS52MCJ9LHsiY3JlYXRlZCI6IjIwMjQtMDItMTRUMDg6NTM6NDMuMTQ0MzM0OTA4WiIsImNyZWF0ZWRfYnkiOiJDT1BZIGhhcmQtZHJpdmUuc3ZnIC4gIyBidWlsZGtpdCIsImNvbW1lbnQiOiJidWlsZGtpdC5kb2NrZXJmaWxlLnYwIn0seyJjcmVhdGVkIjoiMjAyNC0wMi0xNFQwODo1NTowNy43ODM5OTIxOThaIiwiY3JlYXRlZF9ieSI6IkNPUFkgL3VpL2J1aWxkIHVpICMgYnVpbGRraXQiLCJjb21tZW50IjoiYnVpbGRraXQuZG9ja2VyZmlsZS52MCJ9XSwib3MiOiJsaW51eCIsInJvb3RmcyI6eyJ0eXBlIjoibGF5ZXJzIiwiZGlmZl9pZHMiOlsic2hhMjU2OmRlZmZiNjJhYTkxMmEwMmQ0ZmY0ZjRkZTg1OGY2OWZlY2RiMGUzYWE1ZDU4OGZlZjhhMzEwZjA0YjI0Yjg1MmUiLCJzaGEyNTY6ZDQxZjJjMzRiMjA0ZjM4YzQxYThkYWU1MzBiZWMzNjg1Zjk5NzcxODA2NjVjMGQwZDcwMDEwZmUyMWY4YzI5ZiIsInNoYTI1Njo0YTdhNjgwZjlkOTUwNDk2MmYxZDIwNGRmMzZlYmM0MjBhOWI1MTU5YjNmYTk4NDgzNjg1NzRiYWNiNzdjMThiIl19fQ==",
+      "distro": {},
+      "platform": {
+        "os": "linux",
+        "architecture": "amd64"
+      },
+      "size": 774419
+    },
+    "provenance": {
+      "vcs": {
+        "revision": "b9df55b73bab30469aeb96dcaa94afc99128d820",
+        "source": "https://github.com/docker/disk-usage-extension"
+      }
+    }
+  },
+  "attestations": [],
+  "artifacts": [],
+  "descriptor": {
+    "name": "docker-scout",
+    "version": "1.17.0",
+    "sbom_version": "11"
+  }
+}

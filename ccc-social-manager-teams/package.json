@@ -1,0 +1,13 @@
+{
+  "name": "ccc-social-manager-teams",
+  "version": "1.0.0",
+  "main": "scripts/runScheduler.js",
+  "dependencies": {
+    "twitter-api-v2": "^1.15.0",
+    "dotenv": "^16.0.0",
+    "gray-matter": "^4.0.3"
+  },
+  "scripts": {
+    "start": "node scripts/runScheduler.js"
+  }
+}

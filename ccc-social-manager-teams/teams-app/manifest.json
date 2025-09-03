@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "YOUR-GUID-HERE",
+  "packageName": "com.cccerith.socialmanager",
+  "developer": {
+    "name": "CCC Erith Parish",
+    "websiteUrl": "https://cccerithparish.org",
+    "privacyUrl": "https://cccerithparish.org/privacy",
+    "termsOfUseUrl": "https://cccerithparish.org/terms"
+  },
+  "name": { "short": "Social Manager", "full": "CCC Erith Parish Social Media Manager" },
+  "description": {
+    "short": "Manage church content and cross-post to social media",
+    "full": "Dashboard for volunteers to manage blog posts, flipbook updates, and post them to Facebook, Instagram, Twitter, and LinkedIn."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "socialTab",
+      "name": "Social Manager",
+      "contentUrl": "https://social.cccerithparish.org",
+      "websiteUrl": "https://social.cccerithparish.org",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["social.cccerithparish.org"]
+}

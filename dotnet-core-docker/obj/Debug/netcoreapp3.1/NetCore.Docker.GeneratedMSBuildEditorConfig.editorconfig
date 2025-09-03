@@ -1,8 +1,5 @@
 is_global = true
 build_property.RootNamespace = NetCore.Docker
-build_property.ProjectDir = /media/developer/nsl/remote-dev-project/dotnet-core-docker/
+build_property.ProjectDir = /workspaces/vsproject-development-directory/dotnet-core-docker/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
-build_property.CsWinRTUseWindowsUIXamlProjections = false
-build_property.EffectiveAnalysisLevelStyle = 
-build_property.EnableCodeStyleSeverity = 

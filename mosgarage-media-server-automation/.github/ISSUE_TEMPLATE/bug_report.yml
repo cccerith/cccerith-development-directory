@@ -1,0 +1,148 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with the media server automation
+title: "[Bug]: "
+labels: ["bug", "needs-review"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 🐛
+        
+        Please search existing issues before creating a new one to avoid duplicates.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify you have completed these steps
+      options:
+        - label: I have searched for existing issues
+          required: true
+        - label: I have read the troubleshooting guide
+          required: true
+        - label: This is a bug, not a feature request or question
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version are you running?
+      placeholder: "v1.0.0 or commit hash"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where are you running this?
+      options:
+        - Production server
+        - VM testing environment
+        - Local development
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running?
+      placeholder: "Ubuntu 22.04, Debian 12, etc."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened?
+      placeholder: "The service should start successfully..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: "The service failed to start with error..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Run `sudo ./scripts/bootstrap.sh`
+        2. Wait for deployment to complete
+        3. Check service status
+        4. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Please include relevant logs (remove any sensitive information)
+      placeholder: |
+        ```
+        [ERROR] Service failed to start
+        [INFO] Attempting restart...
+        ```
+      render: shell
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Any custom configuration or environment variables used?
+      placeholder: |
+        ```yaml
+        # Custom config.yml
+        nas_host: mynas.local
+        vpn_provider: protonvpn
+        ```
+      render: yaml
+
+  - type: dropdown
+    id: services
+    attributes:
+      label: Affected Services
+      description: Which services are affected? (Select all that apply)
+      multiple: true
+      options:
+        - Sonarr
+        - Radarr
+        - Prowlarr
+        - Bazarr
+        - Transmission
+        - NZBGet
+        - Overseerr
+        - Flaresolverr
+        - Gluetun (VPN)
+        - System/Ansible
+        - Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: "This started happening after..."
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Help
+      description: Are you willing to help fix this issue?
+      options:
+        - label: I can provide additional testing
+        - label: I can help with debugging
+        - label: I can submit a pull request

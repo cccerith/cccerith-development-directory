@@ -1,0 +1,28 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "YOUR-GUID-HERE",
+  "packageName": "com.enterprise.flipbook",
+  "developer": {
+    "name": "Your Company",
+    "websiteUrl": "https://yourdomain.com",
+    "privacyUrl": "https://yourdomain.com/privacy",
+    "termsOfUseUrl": "https://yourdomain.com/terms"
+  },
+  "name": { "short": "Flipbook", "full": "Enterprise Flipbook" },
+  "description": { "short": "Interactive PDF Flipbook", "full": "Feature-rich flipbook for Teams with SharePoint backend." },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#0078d4",
+  "staticTabs": [
+    {
+      "entityId": "flipbookTab",
+      "name": "Flipbook",
+      "contentUrl": "https://flipbook.yourdomain.com/index.html",
+      "websiteUrl": "https://flipbook.yourdomain.com/index.html",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["flipbook.yourdomain.com"]
+}

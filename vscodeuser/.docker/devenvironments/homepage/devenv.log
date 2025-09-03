@@ -1,0 +1,19 @@
+Preparing to clone inside a volume
+Installing credential helpers... 
+done
+Cloning into '/com.docker.devenvironments.code'...
+Detecting main repo language...
+Migration: no config.json detected
+Migration: no .docker/docker-compose.yaml detected
+ Network homepage_default  Creating
+ Network homepage_default  Created
+ Container homepage-app-1  Creating
+ Container homepage-app-1  Created
+ Container homepage-app-1  Starting
+ Container homepage-app-1  Started
+ Volume "vsCodeServerVolume-homepage-app"  Creating
+ Volume "vsCodeServerVolume-homepage-app"  Created
+ Container homepage-app-1  Recreate
+ Container homepage-app-1  Recreated
+ Container homepage-app-1  Starting
+ Container homepage-app-1  Started
