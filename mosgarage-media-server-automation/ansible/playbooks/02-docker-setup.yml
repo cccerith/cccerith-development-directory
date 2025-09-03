@@ -1,0 +1,149 @@
+---
+- name: Media Server - Docker Installation
+  hosts: all
+  become: yes
+  vars:
+    docker_users:
+      - "{{ ansible_user }}"
+      - media
+
+  tasks:
+    - name: Remove old Docker packages
+      apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: >-
+          deb [arch=amd64] https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Update apt cache after adding repository
+      apt:
+        update_cache: yes
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop: "{{ docker_users }}"
+
+    - name: Install Docker Compose (standalone)
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create Docker Compose symlink
+      file:
+        src: /usr/local/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+
+    - name: Configure Docker daemon
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            },
+            "default-ulimits": {
+              "nofile": {
+                "Name": "nofile",
+                "Hard": 65536,
+                "Soft": 65536
+              }
+            },
+            "storage-driver": "overlay2",
+            "dns": ["1.1.1.1", "8.8.8.8"]
+          }
+      notify: restart docker
+
+    - name: Create docker-compose system service
+      copy:
+        dest: /etc/systemd/system/media-server.service
+        content: |
+          [Unit]
+          Description=Media Server Docker Compose
+          Requires=docker.service
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          WorkingDirectory=/opt/media-server
+          ExecStart=/usr/local/bin/docker-compose up -d
+          ExecStop=/usr/local/bin/docker-compose down
+          TimeoutStartSec=0
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable media-server service
+      systemd:
+        name: media-server
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Configure logrotate for Docker logs
+      copy:
+        dest: /etc/logrotate.d/docker-containers
+        content: |
+          /var/lib/docker/containers/*/*.log {
+            rotate 7
+            daily
+            compress
+            delaycompress
+            missingok
+            notifempty
+            copytruncate
+          }
+
+    - name: Test Docker installation
+      shell: docker --version && docker-compose --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      debug:
+        var: docker_version.stdout_lines
+
+  handlers:
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted

@@ -1,0 +1,187 @@
+---
+- name: Media Server - System Base Setup
+  hosts: all
+  become: yes
+  vars:
+    media_user: media
+    media_uid: 1001
+    media_gid: 1001
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+
+    - name: Install essential packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - htop
+          - tree
+          - unzip
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - nfs-common
+          - ufw
+          - fail2ban
+        state: present
+
+    - name: Set timezone to Australia/Sydney
+      timezone:
+        name: Australia/Sydney
+
+    - name: Create media group
+      group:
+        name: "{{ media_user }}"
+        gid: "{{ media_gid }}"
+        state: present
+
+    - name: Create media user
+      user:
+        name: "{{ media_user }}"
+        uid: "{{ media_uid }}"
+        group: "{{ media_user }}"
+        shell: /bin/false
+        home: /var/lib/{{ media_user }}
+        create_home: no
+        system: yes
+        state: present
+
+    - name: Add current user to media group
+      user:
+        name: "{{ ansible_user }}"
+        groups: "{{ media_user }}"
+        append: yes
+
+    - name: Create media directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0755'
+      loop:
+        - /opt/media-server
+        - /opt/media-server/configs
+        - /opt/media-server/data
+
+    - name: Configure basic firewall
+      ufw:
+        state: enabled
+        default: deny
+        direction: incoming
+
+    - name: Allow SSH through firewall
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Allow media server ports through firewall
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '8989'  # Sonarr
+        - '7878'  # Radarr
+        - '9696'  # Prowlarr
+        - '6767'  # Bazarr
+        - '9091'  # Transmission
+        - '6789'  # NZBGet
+        - '5055'  # Overseerr
+        - '8191'  # Flaresolverr
+
+    - name: Configure fail2ban
+      systemd:
+        name: fail2ban
+        enabled: yes
+        state: started
+
+    - name: Disable unnecessary services
+      systemd:
+        name: "{{ item }}"
+        enabled: no
+        state: stopped
+      loop:
+        - apache2
+        - nginx
+        - mysql
+        - postgresql
+      failed_when: false  # Don't fail if service doesn't exist
+
+    - name: Configure system swappiness
+      sysctl:
+        name: vm.swappiness
+        value: '10'
+        state: present
+
+    - name: Configure network parameters for media server
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+      loop:
+        - { name: 'net.core.rmem_max', value: '16777216' }
+        - { name: 'net.core.wmem_max', value: '16777216' }
+        - { name: 'net.ipv4.tcp_rmem', value: '4096 32768 16777216' }
+        - { name: 'net.ipv4.tcp_wmem', value: '4096 32768 16777216' }
+
+    - name: Create log rotation for media apps
+      copy:
+        dest: /etc/logrotate.d/media-server
+        content: |
+          /opt/media-server/configs/*/logs/*.log {
+              daily
+              rotate 7
+              compress
+              delaycompress
+              missingok
+              notifempty
+              create 644 {{ media_user }} {{ media_user }}
+          }
+
+    - name: Set up automatic updates (security only)
+      copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::Download-Upgradeable-Packages "1";
+          APT::Periodic::AutocleanInterval "7";
+
+    - name: Configure unattended upgrades (security only)
+      copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        content: |
+          Unattended-Upgrade::Allowed-Origins {
+              "${distro_id}:${distro_codename}-security";
+              "${distro_id}ESMApps:${distro_codename}-apps-security";
+              "${distro_id}ESM:${distro_codename}-infra-security";
+          };
+          Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+          Unattended-Upgrade::MinimalSteps "true";
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+          Unattended-Upgrade::Automatic-Reboot "false";
+
+    - name: Reboot system if kernel was updated
+      reboot:
+        msg: "Reboot initiated by Ansible for kernel updates"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: whoami
+      when: ansible_kernel != ansible_facts['kernel']

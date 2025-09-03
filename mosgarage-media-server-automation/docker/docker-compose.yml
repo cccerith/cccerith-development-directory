@@ -1,0 +1,458 @@
+version: '3.8'
+
+networks:
+  media-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  # Init Container - Prepares environment and configurations
+  media-init:
+    image: alpine:latest
+    container_name: media-init
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./configs:/configs:rw
+      - ./.env:/env:ro
+    command: ["/scripts/init-container.sh"]
+    networks:
+      - media-network
+    profiles:
+      - init
+  # VPN Container - All download traffic routes through this
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "9091:9091"    # Transmission WebUI
+      - "6789:6789"    # NZBGet WebUI
+    volumes:
+      - ./configs/gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${PROTON_USER}
+      - OPENVPN_PASSWORD=${PROTON_PASS}
+      - OPENVPN_CONFIG_FILE=${PROTON_CONFIG:-proton.conf}
+      - SERVER_COUNTRIES=Switzerland
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.69.0/24  # Local network access
+      - LOG_LEVEL=info
+      - HEALTH_TARGET_ADDRESS=1.1.1.1:53
+      - HEALTH_SUCCESS_WAIT_DURATION=5s
+    restart: unless-stopped
+    networks:
+      - media-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/openvpn/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Transmission - BitTorrent client via VPN
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1001  # media user
+      - PGID=1001  # media group
+      - TZ=Australia/Sydney
+      - TRANSMISSION_WEB_HOME=/config/web
+      - USER=${TRANSMISSION_USER:-admin}
+      - PASS=${TRANSMISSION_PASS:-password}
+    volumes:
+      - ./configs/transmission:/config
+      - /mnt/artie/downloads:/downloads
+      - /mnt/artie/downloads/watch:/watch
+    restart: unless-stopped
+
+  # NZBGet - Usenet client via VPN
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1001  # media user
+      - PGID=1001  # media group
+      - TZ=Australia/Sydney
+    volumes:
+      - ./configs/nzbget:/config
+      - /mnt/artie/downloads:/downloads
+    restart: unless-stopped
+
+  # Sonarr - TV Show management
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - SONARR__API_KEY=${SONARR_API_KEY:-}
+    volumes:
+      - ./configs/sonarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads
+    ports:
+      - "${SONARR_PORT:-8989}:8989"
+    restart: unless-stopped
+    networks:
+      - media-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Radarr - Movie management
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - RADARR__API_KEY=${RADARR_API_KEY:-}
+    volumes:
+      - ./configs/radarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads
+    ports:
+      - "${RADARR_PORT:-7878}:7878"
+    restart: unless-stopped
+    networks:
+      - media-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Prowlarr - Indexer management
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - PROWLARR__API_KEY=${PROWLARR_API_KEY:-}
+    volumes:
+      - ./configs/prowlarr:/config
+    ports:
+      - "${PROWLARR_PORT:-9696}:9696"
+    restart: unless-stopped
+    networks:
+      - media-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9696/api/v1/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Bazarr - Subtitle management
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - BAZARR__API_KEY=${BAZARR_API_KEY:-}
+    volumes:
+      - ./configs/bazarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+    ports:
+      - "${BAZARR_PORT:-6767}:6767"
+    restart: unless-stopped
+    networks:
+      - media-network
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6767/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Overseerr - Request management
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      - LOG_LEVEL=${OVERSEERR_LOG_LEVEL:-info}
+      - TZ=${TZ:-Australia/Sydney}
+      - OVERSEERR__API_KEY=${OVERSEERR_API_KEY:-}
+    ports:
+      - "${OVERSEERR_PORT:-5055}:5055"
+    volumes:
+      - ./configs/overseerr:/app/config
+    restart: unless-stopped
+    networks:
+      - media-network
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055/api/v1/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Flaresolverr - Cloudflare bypass
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=Australia/Sydney
+    ports:
+      - "8191:8191"
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Watchtower - Auto-update containers
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Australia/Sydney
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *  # Daily at 4 AM
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+    restart: unless-stopped
+
+  # VPN Health Monitor - Monitors VPN connection and restarts if needed
+  vpn-monitor:
+    image: alpine:latest
+    container_name: vpn-monitor
+    depends_on:
+      - gluetun
+    volumes:
+      - ./scripts/vpn-health.sh:/vpn-health.sh:ro
+    command: sh -c "chmod +x /vpn-health.sh && /vpn-health.sh"
+    restart: unless-stopped
+    networks:
+      - media-network
+    environment:
+      - VPN_CHECK_INTERVAL=${VPN_CHECK_INTERVAL:-60}
+      - VPN_RESTART_THRESHOLD=${VPN_RESTART_THRESHOLD:-3}
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./configs/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Grafana - Monitoring Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./configs/grafana:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # cAdvisor - Container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "${CADVISOR_PORT:-8080}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    volumes:
+      - '/:/host:ro,rslave'
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./configs/loki:/etc/loki:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Promtail - Log shipper
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./configs/promtail:/etc/promtail:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Portainer - Docker management UI
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    ports:
+      - "${PORTAINER_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer-data:/data
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Unpackerr - Automated extraction
+  unpackerr:
+    image: golift/unpackerr:latest
+    container_name: unpackerr
+    user: 1001:1001
+    volumes:
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/data:rw
+      - ./configs/unpackerr:/config:ro
+    environment:
+      - TZ=${TZ:-Australia/Sydney}
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_KEY:-}
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  # Cleanuparr - Download cleanup automation
+  cleanuparr:
+    image: ghcr.io/cleanuparr/cleanuparr:latest
+    container_name: cleanuparr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - CLEANUPARR_SONARR_URL=http://sonarr:8989
+      - CLEANUPARR_SONARR_API_KEY=${SONARR_API_KEY:-}
+      - CLEANUPARR_RADARR_URL=http://radarr:7878
+      - CLEANUPARR_RADARR_API_KEY=${RADARR_API_KEY:-}
+      - CLEANUPARR_LOG_LEVEL=INFO
+    volumes:
+      - ./configs/cleanuparr:/config
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads:rw
+    ports:
+      - "${CLEANUPARR_PORT:-8990}:8990"
+    restart: unless-stopped
+    networks:
+      - media-network
+    depends_on:
+      - sonarr
+      - radarr
+
+  # Huntarr - Advanced torrent management
+  huntarr:
+    image: huntarr/huntarr:latest
+    container_name: huntarr
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - HUNTARR_SONARR_URL=http://sonarr:8989
+      - HUNTARR_SONARR_API_KEY=${SONARR_API_KEY:-}
+      - HUNTARR_RADARR_URL=http://radarr:7878
+      - HUNTARR_RADARR_API_KEY=${RADARR_API_KEY:-}
+      - HUNTARR_PROWLARR_URL=http://prowlarr:9696
+      - HUNTARR_PROWLARR_API_KEY=${PROWLARR_API_KEY:-}
+    volumes:
+      - ./configs/huntarr:/config
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads:ro
+    ports:
+      - "${HUNTARR_PORT:-8991}:8991"
+    restart: unless-stopped
+    networks:
+      - media-network
+    depends_on:
+      - sonarr
+      - radarr
+      - prowlarr
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8991/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+  portainer-data:
+    driver: local

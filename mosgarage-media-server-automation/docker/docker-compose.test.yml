@@ -1,0 +1,355 @@
+version: '3.8'
+
+networks:
+  media-network-test:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+volumes:
+  prometheus-data-test:
+    driver: local
+  grafana-data-test:
+    driver: local
+  loki-data-test:
+    driver: local
+  portainer-data-test:
+    driver: local
+
+services:
+  # VPN Container - Mock VPN for testing (no real VPN connection needed)
+  gluetun-test:
+    image: alpine:latest
+    container_name: gluetun-test
+    command: sh -c "echo 'Mock VPN container for testing' && sleep infinity"
+    ports:
+      - "18000:8000"    # Mock VPN API
+    environment:
+      - MOCK_VPN=true
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    healthcheck:
+      test: ["CMD", "echo", "Mock VPN OK"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+
+  # Transmission - BitTorrent client (testing mode)
+  transmission-test:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - TRANSMISSION_WEB_HOME=/config/web
+      - USER=${TRANSMISSION_USER:-admin}
+      - PASS=${TRANSMISSION_PASS:-testpass123}
+    volumes:
+      - ./configs-test/transmission:/config
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads
+    ports:
+      - "${TRANSMISSION_PORT:-10091}:9091"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      - gluetun-test
+
+  # Sonarr - TV Show management (testing)
+  sonarr-test:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - SONARR__API_KEY=${SONARR_API_KEY:-}
+    volumes:
+      - ./configs-test/sonarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads
+    ports:
+      - "${SONARR_PORT:-9989}:8989"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Radarr - Movie management (testing)
+  radarr-test:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - RADARR__API_KEY=${RADARR_API_KEY:-}
+    volumes:
+      - ./configs-test/radarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads
+    ports:
+      - "${RADARR_PORT:-8878}:7878"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Prowlarr - Indexer management (testing)
+  prowlarr-test:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - PROWLARR__API_KEY=${PROWLARR_API_KEY:-}
+    volumes:
+      - ./configs-test/prowlarr:/config
+    ports:
+      - "${PROWLARR_PORT:-10696}:9696"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9696/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Bazarr - Subtitle management (testing)
+  bazarr-test:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - BAZARR__API_KEY=${BAZARR_API_KEY:-}
+    volumes:
+      - ./configs-test/bazarr:/config
+      - ${MEDIA_ROOT:-/mnt/artie}:/data
+    ports:
+      - "${BAZARR_PORT:-7767}:6767"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      sonarr-test:
+        condition: service_healthy
+      radarr-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6767/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Overseerr - Request management (testing)
+  overseerr-test:
+    image: sctx/overseerr:latest
+    container_name: overseerr-test
+    environment:
+      - LOG_LEVEL=${OVERSEERR_LOG_LEVEL:-debug}
+      - TZ=${TZ:-Australia/Sydney}
+    ports:
+      - "${OVERSEERR_PORT:-6055}:5055"
+    volumes:
+      - ./configs-test/overseerr:/app/config
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      sonarr-test:
+        condition: service_healthy
+      radarr-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055/api/v1/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Flaresolverr - Cloudflare bypass (testing)
+  flaresolverr-test:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr-test
+    environment:
+      - LOG_LEVEL=${FLARESOLVERR_LOG_LEVEL:-info}
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=${TZ:-Australia/Sydney}
+    ports:
+      - "${FLARESOLVERR_PORT:-9191}:8191"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+
+  # Unpackerr - Automated extraction (testing)
+  unpackerr-test:
+    image: golift/unpackerr:latest
+    container_name: unpackerr-test
+    user: ${PUID:-1001}:${PGID:-1001}
+    volumes:
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/data:rw
+      - ./configs-test/unpackerr:/config:ro
+    environment:
+      - TZ=${TZ:-Australia/Sydney}
+      - UN_SONARR_0_URL=http://sonarr-test:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_KEY:-}
+      - UN_RADARR_0_URL=http://radarr-test:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - media-network-test
+
+  # Cleanuparr - Download cleanup automation (testing)
+  cleanuparr-test:
+    image: ghcr.io/cleanuparr/cleanuparr:latest
+    container_name: cleanuparr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - CLEANUPARR_SONARR_URL=http://sonarr-test:8989
+      - CLEANUPARR_SONARR_API_KEY=${SONARR_API_KEY:-}
+      - CLEANUPARR_RADARR_URL=http://radarr-test:7878
+      - CLEANUPARR_RADARR_API_KEY=${RADARR_API_KEY:-}
+      - CLEANUPARR_LOG_LEVEL=DEBUG
+    volumes:
+      - ./configs-test/cleanuparr:/config
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads:rw
+    ports:
+      - "${CLEANUPARR_PORT:-9990}:8990"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      - sonarr-test
+      - radarr-test
+
+  # Huntarr - Advanced torrent management (testing)
+  huntarr-test:
+    image: huntarr/huntarr:latest
+    container_name: huntarr-test
+    environment:
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
+      - TZ=${TZ:-Australia/Sydney}
+      - HUNTARR_SONARR_URL=http://sonarr-test:8989
+      - HUNTARR_SONARR_API_KEY=${SONARR_API_KEY:-}
+      - HUNTARR_RADARR_URL=http://radarr-test:7878
+      - HUNTARR_RADARR_API_KEY=${RADARR_API_KEY:-}
+      - HUNTARR_PROWLARR_URL=http://prowlarr-test:9696
+      - HUNTARR_PROWLARR_API_KEY=${PROWLARR_API_KEY:-}
+    volumes:
+      - ./configs-test/huntarr:/config
+      - ${DOWNLOADS_PATH:-/mnt/artie/downloads}:/downloads:ro
+    ports:
+      - "${HUNTARR_PORT:-9991}:8991"
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      - sonarr-test
+      - radarr-test
+      - prowlarr-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8991/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus - Metrics collection (testing)
+  prometheus-test:
+    image: prom/prometheus:latest
+    container_name: prometheus-test
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-10090}:9090"
+    volumes:
+      - ./configs-test/prometheus:/etc/prometheus:ro
+      - prometheus-data-test:/prometheus
+    restart: unless-stopped
+    networks:
+      - media-network-test
+
+  # Grafana - Monitoring Dashboard (testing)
+  grafana-test:
+    image: grafana/grafana:latest
+    container_name: grafana-test
+    ports:
+      - "${GRAFANA_PORT:-4000}:3000"
+    volumes:
+      - ./configs-test/grafana:/etc/grafana/provisioning:ro
+      - grafana-data-test:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-testpass123}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    networks:
+      - media-network-test
+    depends_on:
+      - prometheus-test
+
+  # Portainer - Docker management UI (testing)
+  portainer-test:
+    image: portainer/portainer-ce:latest
+    container_name: portainer-test
+    command: -H unix:///var/run/docker.sock
+    ports:
+      - "${PORTAINER_PORT:-10443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer-data-test:/data
+    restart: unless-stopped
+    networks:
+      - media-network-test
+
+  # Test API Integration Service
+  api-integration-test:
+    image: alpine:latest
+    container_name: api-integration-test
+    volumes:
+      - ../scripts:/scripts:ro
+      - ./.env.test:/env:ro
+    command: sh -c "
+      apk add --no-cache curl jq bash &&
+      echo 'API Integration Test Container Ready' &&
+      sleep infinity
+    "
+    networks:
+      - media-network-test
+    depends_on:
+      sonarr-test:
+        condition: service_healthy
+      radarr-test:
+        condition: service_healthy
+      prowlarr-test:
+        condition: service_healthy
+      bazarr-test:
+        condition: service_healthy
+    profiles:
+      - testing

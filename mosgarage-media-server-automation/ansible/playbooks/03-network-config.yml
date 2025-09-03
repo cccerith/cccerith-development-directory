@@ -1,0 +1,220 @@
+---
+- name: Media Server - Network Configuration
+  hosts: all
+  become: yes
+  vars:
+    tailscale_authkey: "{{ vault_tailscale_authkey | default('') }}"
+
+  tasks:
+    - name: Install network packages
+      apt:
+        name:
+          - openvpn
+          - resolvconf
+          - iptables-persistent
+          - curl
+          - jq
+        state: present
+
+    - name: Create VPN configuration directory
+      file:
+        path: /etc/openvpn/client
+        state: directory
+        mode: '0700'
+
+    - name: Configure IP forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+
+    - name: Create VPN kill switch script
+      copy:
+        dest: /opt/media-server/vpn-killswitch.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # VPN Kill Switch for Media Server
+
+          # Allow loopback
+          iptables -A INPUT -i lo -j ACCEPT
+          iptables -A OUTPUT -o lo -j ACCEPT
+
+          # Allow local network
+          iptables -A INPUT -s 192.168.69.0/24 -j ACCEPT
+          iptables -A OUTPUT -d 192.168.69.0/24 -j ACCEPT
+
+          # Allow established connections
+          iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+          iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+          # Allow VPN connection
+          iptables -A OUTPUT -p udp --dport 1194 -j ACCEPT
+          iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+
+          # Allow DNS
+          iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+          iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+
+          # Block all other traffic (kill switch)
+          iptables -A OUTPUT -j DROP
+          iptables -A INPUT -j DROP
+
+          echo "VPN kill switch activated"
+
+    - name: Install Tailscale
+      block:
+        - name: Add Tailscale GPG key
+          apt_key:
+            url: https://pkgs.tailscale.com/stable/ubuntu/jammy.asc
+            state: present
+
+        - name: Add Tailscale repository
+          apt_repository:
+            repo: "deb https://pkgs.tailscale.com/stable/ubuntu jammy main"
+            state: present
+
+        - name: Install Tailscale
+          apt:
+            name: tailscale
+            state: present
+            update_cache: yes
+
+        - name: Start and enable Tailscale
+          systemd:
+            name: tailscaled
+            state: started
+            enabled: yes
+
+        - name: Authenticate Tailscale (if authkey provided)
+          shell: tailscale up --authkey="{{ tailscale_authkey }}" --accept-routes --accept-dns=false
+          when: tailscale_authkey != ""
+          register: tailscale_result
+          failed_when:
+            - tailscale_result.rc != 0
+            - "'already logged in' not in tailscale_result.stderr"
+
+    - name: Configure UFW for media server
+      ufw:
+        rule: allow
+        from_ip: "{{ item }}"
+      loop:
+        - 100.64.0.0/10  # Tailscale network
+        - 192.168.69.0/24  # Local network
+
+    - name: Create network monitoring script
+      copy:
+        dest: /opt/media-server/check-network.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Network Health Check Script
+
+          echo "=== Network Status Check ==="
+          date
+          echo
+
+          echo "Local IP Address:"
+          ip addr show $(ip route | grep default | awk '{print $5}' | head -1) | grep 'inet ' | awk '{print $2}'
+          echo
+
+          echo "VPN Status:"
+          if pgrep openvpn > /dev/null; then
+              echo "✓ OpenVPN is running"
+              echo "VPN IP: $(curl -s --max-time 10 https://ipinfo.io/ip || echo 'Failed to get IP')"
+          else
+              echo "✗ OpenVPN is not running"
+          fi
+          echo
+
+          echo "Tailscale Status:"
+          tailscale status --json 2>/dev/null | jq -r '.Self.TailscaleIPs[0]' 2>/dev/null || echo "Not connected"
+          echo
+
+          echo "Internet Connectivity:"
+          if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+              echo "✓ Internet accessible"
+          else
+              echo "✗ No internet connectivity"
+          fi
+          echo
+
+          echo "Media Server Ports:"
+          netstat -tlnp 2>/dev/null | grep -E ':(8989|7878|9696|6767|9091|6789|5055)' || echo "No media services detected"
+
+    - name: Create systemd service for network monitoring
+      copy:
+        dest: /etc/systemd/system/network-monitor.service
+        content: |
+          [Unit]
+          Description=Media Server Network Monitor
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/opt/media-server/check-network.sh
+          User=root
+
+    - name: Create systemd timer for network monitoring
+      copy:
+        dest: /etc/systemd/system/network-monitor.timer
+        content: |
+          [Unit]
+          Description=Run network monitoring every 5 minutes
+          Requires=network-monitor.service
+
+          [Timer]
+          OnBootSec=5min
+          OnUnitActiveSec=5min
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable network monitoring timer
+      systemd:
+        name: network-monitor.timer
+        enabled: yes
+        daemon_reload: yes
+        state: started
+
+    - name: Configure DNS for better performance
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNS=1.1.1.1 8.8.8.8
+          FallbackDNS=1.0.0.1 8.8.4.4
+          Cache=yes
+          DNSStubListener=yes
+      notify: restart systemd-resolved
+
+    - name: Create VPN connection test script
+      copy:
+        dest: /opt/media-server/test-vpn.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # VPN Connection Test
+
+          echo "Testing VPN connection..."
+
+          # Test IP leak
+          REAL_IP=$(curl -s --connect-timeout 5 http://ipecho.net/plain)
+          VPN_IP=$(curl -s --connect-timeout 5 --interface tun0 http://ipecho.net/plain 2>/dev/null)
+
+          echo "Real IP: ${REAL_IP}"
+          echo "VPN IP: ${VPN_IP}"
+
+          if [ "$REAL_IP" = "$VPN_IP" ]; then
+              echo "⚠️  WARNING: IP leak detected! VPN may not be working properly"
+              exit 1
+          else
+              echo "✓ VPN is working correctly - no IP leak detected"
+              exit 0
+          fi
+
+  handlers:
+    - name: restart systemd-resolved
+      systemd:
+        name: systemd-resolved
+        state: restarted

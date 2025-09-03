@@ -1,0 +1,327 @@
+---
+- name: Media Server - Deploy Media Stack
+  hosts: all
+  become: yes
+  vars:
+    docker_dir: /opt/media-server
+    media_user: media
+    media_uid: 1001
+    media_gid: 1001
+
+  tasks:
+    - name: Create Docker Compose directory structure
+      file:
+        path: "{{ docker_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0755'
+      loop:
+        - configs
+        - configs/sonarr
+        - configs/radarr
+        - configs/prowlarr
+        - configs/bazarr
+        - configs/transmission
+        - configs/nzbget
+        - configs/overseerr
+        - configs/flaresolverr
+        - configs/gluetun
+        - configs/grafana
+
+    - name: Copy Docker Compose file
+      copy:
+        src: "{{ playbook_dir }}/../../docker/docker-compose.yml"
+        dest: "{{ docker_dir }}/docker-compose.yml"
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0644'
+
+    - name: Create environment file from template
+      template:
+        src: "{{ playbook_dir }}/../../docker/.env.template"
+        dest: "{{ docker_dir }}/.env"
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0600'
+
+    - name: Create ProtonVPN configuration directory
+      file:
+        path: "{{ docker_dir }}/configs/gluetun"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0700'
+
+    - name: Copy ProtonVPN configuration (if exists)
+      copy:
+        src: "{{ vault_proton_config | default('/dev/null') }}"
+        dest: "{{ docker_dir }}/configs/gluetun/proton.conf"
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0600'
+      when: vault_proton_config is defined
+      failed_when: false
+
+    - name: Create Transmission settings.json
+      copy:
+        dest: "{{ docker_dir }}/configs/transmission/settings.json"
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0644'
+        content: |
+          {
+              "alt-speed-down": 50,
+              "alt-speed-enabled": false,
+              "alt-speed-time-begin": 540,
+              "alt-speed-time-day": 127,
+              "alt-speed-time-enabled": false,
+              "alt-speed-time-end": 1020,
+              "alt-speed-up": 50,
+              "bind-address-ipv4": "0.0.0.0",
+              "bind-address-ipv6": "::",
+              "blocklist-enabled": false,
+              "cache-size-mb": 4,
+              "dht-enabled": true,
+              "download-dir": "/downloads/complete",
+              "download-queue-enabled": true,
+              "download-queue-size": 5,
+              "encryption": 1,
+              "idle-seeding-limit": 30,
+              "idle-seeding-limit-enabled": false,
+              "incomplete-dir": "/downloads/incomplete",
+              "incomplete-dir-enabled": true,
+              "lpd-enabled": false,
+              "message-level": 2,
+              "peer-congestion-algorithm": "",
+              "peer-id-ttl-hours": 6,
+              "peer-limit-global": 200,
+              "peer-limit-per-torrent": 50,
+              "peer-port": 51413,
+              "peer-port-random-high": 65535,
+              "peer-port-random-low": 49152,
+              "peer-port-random-on-start": false,
+              "peer-socket-tos": "default",
+              "pex-enabled": true,
+              "port-forwarding-enabled": false,
+              "preallocation": 1,
+              "prefetch-enabled": true,
+              "queue-stalled-enabled": true,
+              "queue-stalled-minutes": 30,
+              "ratio-limit": 2,
+              "ratio-limit-enabled": false,
+              "rename-partial-files": true,
+              "rpc-authentication-required": true,
+              "rpc-bind-address": "0.0.0.0",
+              "rpc-enabled": true,
+              "rpc-host-whitelist": "",
+              "rpc-host-whitelist-enabled": true,
+              "rpc-password": "{{ vault_transmission_password | default('password') }}",
+              "rpc-port": 9091,
+              "rpc-url": "/transmission/",
+              "rpc-username": "{{ vault_transmission_username | default('admin') }}",
+              "rpc-whitelist": "127.0.0.1,10.*.*.*,172.16.*.*,172.17.*.*,172.18.*.*,172.19.*.*,172.20.*.*,172.21.*.*,172.22.*.*,172.23.*.*,172.24.*.*,172.25.*.*,172.26.*.*,172.27.*.*,172.28.*.*,172.29.*.*,172.30.*.*,172.31.*.*,192.168.*.*",
+              "rpc-whitelist-enabled": true,
+              "scrape-paused-torrents-enabled": true,
+              "script-torrent-done-enabled": false,
+              "script-torrent-done-filename": "",
+              "seed-queue-enabled": false,
+              "seed-queue-size": 10,
+              "speed-limit-down": 100,
+              "speed-limit-down-enabled": false,
+              "speed-limit-up": 100,
+              "speed-limit-up-enabled": false,
+              "start-added-torrents": true,
+              "trash-original-torrent-files": false,
+              "umask": 2,
+              "upload-slots-per-torrent": 14,
+              "watch-dir": "/downloads/watch",
+              "watch-dir-enabled": true
+          }
+
+    - name: Create NZBGet configuration
+      copy:
+        dest: "{{ docker_dir }}/configs/nzbget/nzbget.conf"
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0644'
+        content: |
+          # NZBGet Configuration
+          MainDir=/downloads
+          DestDir=/downloads/complete
+          InterDir=/downloads/incomplete
+          TempDir=/downloads/tmp
+          QueueDir=/config/queue
+          NzbDir=/config/nzb
+          LogFile=/config/nzbget.log
+          ConfigTemplate=/usr/share/nzbget/nzbget.conf
+          ScriptDir=/usr/share/nzbget/scripts
+
+          # Web Interface
+          ControlIP=0.0.0.0
+          ControlPort=6789
+          ControlUsername={{ vault_nzbget_username | default('admin') }}
+          ControlPassword={{ vault_nzbget_password | default('password') }}
+
+          # Download Settings
+          ArticleCache=700
+          DirectWrite=yes
+          WriteBuffer=1024
+
+          # Connection Settings
+          MaxSpeed=0
+
+          # Logging
+          InfoTarget=both
+          WarningTarget=both
+          ErrorTarget=both
+          DebugTarget=none
+
+    - name: Pull Docker images
+      docker_image:
+        name: "{{ item }}"
+        source: pull
+      loop:
+        - qmcgaw/gluetun:latest
+        - lscr.io/linuxserver/transmission:latest
+        - lscr.io/linuxserver/nzbget:latest
+        - lscr.io/linuxserver/sonarr:latest
+        - lscr.io/linuxserver/radarr:latest
+        - lscr.io/linuxserver/prowlarr:latest
+        - lscr.io/linuxserver/bazarr:latest
+        - sctx/overseerr:latest
+        - ghcr.io/flaresolverr/flaresolverr:latest
+        - containrrr/watchtower:latest
+
+    - name: Start media server stack
+      docker_compose:
+        project_src: "{{ docker_dir }}"
+        state: present
+
+    - name: Wait for services to be healthy
+      uri:
+        url: "http://localhost:{{ item.port }}"
+        method: GET
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 10
+      loop:
+        - { service: 'sonarr', port: 8989 }
+        - { service: 'radarr', port: 7878 }
+        - { service: 'prowlarr', port: 9696 }
+        - { service: 'bazarr', port: 6767 }
+        - { service: 'overseerr', port: 5055 }
+      failed_when: false
+
+    - name: Create media server status script
+      copy:
+        dest: /opt/media-server/status.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Media Server Status Script
+
+          echo "=== Media Server Status ==="
+          date
+          echo
+
+          echo "Docker Containers:"
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          echo
+
+          echo "VPN Status:"
+          if docker exec gluetun wget -qO- ifconfig.me 2>/dev/null; then
+              echo "✓ VPN is working"
+          else
+              echo "✗ VPN issue detected"
+          fi
+          echo
+
+          echo "Service Health:"
+          for service in sonarr radarr prowlarr bazarr overseerr; do
+              case $service in
+                  sonarr) port=8989 ;;
+                  radarr) port=7878 ;;
+                  prowlarr) port=9696 ;;
+                  bazarr) port=6767 ;;
+                  overseerr) port=5055 ;;
+              esac
+
+              if curl -s http://localhost:$port > /dev/null; then
+                  echo "✓ $service (port $port) - OK"
+              else
+                  echo "✗ $service (port $port) - Down"
+              fi
+          done
+          echo
+
+          echo "Download Clients:"
+          if curl -s http://localhost:9091 > /dev/null; then
+              echo "✓ Transmission (port 9091) - OK"
+          else
+              echo "✗ Transmission (port 9091) - Down"
+          fi
+
+          if curl -s http://localhost:6789 > /dev/null; then
+              echo "✓ NZBGet (port 6789) - OK"
+          else
+              echo "✗ NZBGet (port 6789) - Down"
+          fi
+          echo
+
+          echo "Storage:"
+          df -h /mnt/artie 2>/dev/null || echo "NFS not mounted"
+
+    - name: Create health check service
+      copy:
+        dest: /etc/systemd/system/media-health-check.service
+        content: |
+          [Unit]
+          Description=Media Server Health Check
+          After=media-server.service
+
+          [Service]
+          Type=oneshot
+          ExecStart=/opt/media-server/status.sh
+          User=root
+
+    - name: Create health check timer
+      copy:
+        dest: /etc/systemd/system/media-health-check.timer
+        content: |
+          [Unit]
+          Description=Run media server health check every 15 minutes
+          Requires=media-health-check.service
+
+          [Timer]
+          OnBootSec=5min
+          OnUnitActiveSec=15min
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable health check timer
+      systemd:
+        name: media-health-check.timer
+        enabled: yes
+        daemon_reload: yes
+        state: started
+
+    - name: Display deployment status
+      debug:
+        msg: |
+          Media server deployment completed!
+
+          Services should be available at:
+          - Sonarr: http://{{ ansible_default_ipv4.address }}:8989
+          - Radarr: http://{{ ansible_default_ipv4.address }}:7878
+          - Prowlarr: http://{{ ansible_default_ipv4.address }}:9696
+          - Bazarr: http://{{ ansible_default_ipv4.address }}:6767
+          - Overseerr: http://{{ ansible_default_ipv4.address }}:5055
+          - Transmission: http://{{ ansible_default_ipv4.address }}:9091
+          - NZBGet: http://{{ ansible_default_ipv4.address }}:6789
+
+          Run 'docker ps' to check container status
+          Run '/opt/media-server/status.sh' for detailed health check

@@ -1,0 +1,175 @@
+Vagrant.configure("2") do |config|
+  # Use Ubuntu 24.04 LTS
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.box_version = "20240821.0.0"
+  
+  # VM Configuration
+  config.vm.hostname = "media-server-test"
+  
+  # Network configuration - Testing ports (offset by 1000 to avoid conflicts)
+  config.vm.network "private_network", ip: "192.168.56.10"
+  
+  # Core services (testing ports)
+  config.vm.network "forwarded_port", guest: 9989, host: 9989, host_ip: "127.0.0.1"  # Sonarr-test
+  config.vm.network "forwarded_port", guest: 8878, host: 8878, host_ip: "127.0.0.1"  # Radarr-test
+  config.vm.network "forwarded_port", guest: 10696, host: 10696, host_ip: "127.0.0.1" # Prowlarr-test
+  config.vm.network "forwarded_port", guest: 7767, host: 7767, host_ip: "127.0.0.1"  # Bazarr-test
+  config.vm.network "forwarded_port", guest: 6055, host: 6055, host_ip: "127.0.0.1"  # Overseerr-test
+  
+  # Download clients (testing ports)
+  config.vm.network "forwarded_port", guest: 10091, host: 10091, host_ip: "127.0.0.1" # Transmission-test
+  config.vm.network "forwarded_port", guest: 7789, host: 7789, host_ip: "127.0.0.1"  # NZBGet-test
+  
+  # Additional services (testing ports)  
+  config.vm.network "forwarded_port", guest: 9990, host: 9990, host_ip: "127.0.0.1"  # Cleanuparr-test
+  config.vm.network "forwarded_port", guest: 9991, host: 9991, host_ip: "127.0.0.1"  # Huntarr-test
+  config.vm.network "forwarded_port", guest: 9191, host: 9191, host_ip: "127.0.0.1"  # Flaresolverr-test
+  
+  # Monitoring stack (testing ports)
+  config.vm.network "forwarded_port", guest: 4000, host: 4000, host_ip: "127.0.0.1"  # Grafana-test
+  config.vm.network "forwarded_port", guest: 10090, host: 10090, host_ip: "127.0.0.1" # Prometheus-test
+  config.vm.network "forwarded_port", guest: 10443, host: 10443, host_ip: "127.0.0.1" # Portainer-test
+  
+  # VM Resources (increased for testing) - VirtualBox
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "media-server-test"
+    vb.memory = "6144"  # 6GB RAM for comprehensive testing
+    vb.cpus = 4         # 4 CPUs for better performance
+    
+    # Enable virtualization features
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--vram", "64"]
+  end
+  
+  # VM Resources (increased for testing) - LibVirt
+  config.vm.provider "libvirt" do |lv|
+    lv.memory = 6144     # 6GB RAM for comprehensive testing
+    lv.cpus = 4          # 4 CPUs for better performance
+    lv.machine_type = "q35"
+    lv.cpu_mode = "host-passthrough"
+    lv.nested = true
+  end
+  
+  # Shared folders - VirtualBox
+  config.vm.synced_folder "../", "/vagrant", type: "virtualbox", 
+    owner: "vagrant", group: "vagrant"
+  
+  # Shared folders - LibVirt (fallback)
+  config.vm.synced_folder "../", "/vagrant", type: "rsync",
+    owner: "vagrant", group: "vagrant",
+    rsync__exclude: [".git/", "logs/", "*.log"]
+  
+  # Enhanced provisioning for testing
+  config.vm.provision "shell", inline: <<-SHELL
+    set -euo pipefail
+    
+    echo "🚀 Setting up Media Server Testing Environment..."
+    
+    # Update system
+    apt-get update
+    apt-get upgrade -y
+    
+    # Install essential tools
+    apt-get install -y curl wget git htop tree jq xmlstarlet sqlite3 \
+      ca-certificates gnupg lsb-release net-tools unzip zip
+    
+    # Install Docker
+    echo "🐳 Installing Docker..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    apt-get update
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    
+    # Add vagrant user to docker group
+    usermod -aG docker vagrant
+    
+    # Install Docker Compose v2
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    
+    # Create media user and group
+    echo "👤 Creating media user..."
+    groupadd -g 1001 media || true
+    useradd -r -s /bin/false -u 1001 -g 1001 media || true
+    
+    # Create comprehensive test directory structure
+    echo "📁 Creating test media structure..."
+    mkdir -p /mnt/artie/{downloads/{complete,incomplete,watch},movies,tv,music,books}
+    mkdir -p /mnt/artie/downloads/{sonarr,radarr,nzbget,transmission}
+    
+    # Create sample media files for testing
+    mkdir -p /mnt/artie/tv/TestShow/Season01
+    mkdir -p /mnt/artie/movies/TestMovie
+    echo "Sample TV episode" > "/mnt/artie/tv/TestShow/Season01/TestShow.S01E01.mkv"
+    echo "Sample movie" > "/mnt/artie/movies/TestMovie/TestMovie.2024.mkv"
+    
+    # Set proper ownership
+    chown -R media:media /mnt/artie
+    chmod -R 755 /mnt/artie
+    
+    # Copy and prepare automation files
+    echo "📋 Preparing automation files..."
+    cp -r /vagrant /home/vagrant/media-server-automation
+    chown -R vagrant:vagrant /home/vagrant/media-server-automation
+    
+    # Make all scripts executable
+    chmod +x /home/vagrant/media-server-automation/scripts/*.sh
+    
+    # Create testing environment configuration
+    echo "⚙️  Creating testing configuration..."
+    cd /home/vagrant/media-server-automation
+    
+    # Generate testing .env from template
+    cp docker/.env.template docker/.env.test
+    
+    # Update testing ports and paths
+    sed -i 's/SONARR_PORT=8989/SONARR_PORT=9989/' docker/.env.test
+    sed -i 's/RADARR_PORT=7878/RADARR_PORT=8878/' docker/.env.test  
+    sed -i 's/PROWLARR_PORT=9696/PROWLARR_PORT=10696/' docker/.env.test
+    sed -i 's/BAZARR_PORT=6767/BAZARR_PORT=7767/' docker/.env.test
+    sed -i 's/OVERSEERR_PORT=5055/OVERSEERR_PORT=6055/' docker/.env.test
+    sed -i 's/TRANSMISSION_PORT=9091/TRANSMISSION_PORT=10091/' docker/.env.test
+    sed -i 's/NZBGET_PORT=6789/NZBGET_PORT=7789/' docker/.env.test
+    sed -i 's/GRAFANA_PORT=3000/GRAFANA_PORT=4000/' docker/.env.test
+    sed -i 's/PROMETHEUS_PORT=9090/PROMETHEUS_PORT=10090/' docker/.env.test
+    sed -i 's/PORTAINER_PORT=9443/PORTAINER_PORT=10443/' docker/.env.test
+    sed -i 's/CLEANUPARR_PORT=8990/CLEANUPARR_PORT=9990/' docker/.env.test
+    sed -i 's/HUNTARR_PORT=8991/HUNTARR_PORT=9991/' docker/.env.test
+    sed -i 's/FLARESOLVERR_PORT=8191/FLARESOLVERR_PORT=9191/' docker/.env.test
+    
+    # Set testing credentials (no real VPN needed for most tests)
+    sed -i 's/PROTON_USER=your_protonvpn_username/PROTON_USER=test@example.com/' docker/.env.test
+    sed -i 's/PROTON_PASS=your_protonvpn_password/PROTON_PASS=testpassword/' docker/.env.test
+    sed -i 's/TRANSMISSION_PASS=your_secure_transmission_password/TRANSMISSION_PASS=testpass123/' docker/.env.test
+    sed -i 's/NZBGET_PASS=your_secure_nzbget_password/NZBGET_PASS=testpass123/' docker/.env.test
+    sed -i 's/GRAFANA_PASSWORD=your_secure_grafana_password/GRAFANA_PASSWORD=testpass123/' docker/.env.test
+    
+    # Set testing network (VM network)
+    sed -i 's/LOCAL_NETWORK=192.168.69.0\\/24/LOCAL_NETWORK=192.168.56.0\\/24/' docker/.env.test
+    sed -i 's/SERVER_IP=192.168.69.29/SERVER_IP=192.168.56.10/' docker/.env.test
+    sed -i 's/GATEWAY_IP=192.168.69.1/GATEWAY_IP=192.168.56.1/' docker/.env.test
+    
+    echo "✅ VM setup complete!"
+    echo ""
+    echo "🎯 Testing Environment Ready:"
+    echo "  • VM IP: 192.168.56.10"
+    echo "  • Testing ports offset by +1000"
+    echo "  • Sample media files created"
+    echo "  • Docker and tools installed"
+    echo ""
+    echo "🚀 Next steps:"
+    echo "1. vagrant ssh"
+    echo "2. cd media-server-automation"  
+    echo "3. ./scripts/test-suite.sh  # Run comprehensive tests"
+    echo "4. docker-compose --env-file docker/.env.test up -d  # Start services"
+    echo ""
+    echo "🌐 Access testing services at:"
+    echo "  • Sonarr: http://localhost:9989"
+    echo "  • Radarr: http://localhost:8878" 
+    echo "  • Overseerr: http://localhost:6055"
+    echo "  • Grafana: http://localhost:4000"
+  SHELL
+end

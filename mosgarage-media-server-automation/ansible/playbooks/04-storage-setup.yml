@@ -1,0 +1,254 @@
+---
+- name: Media Server - Storage Setup
+  hosts: all
+  become: yes
+  vars:
+    nas_host: "{{ vault_nas_host | default('artopolis.local') }}"
+    nas_path: "{{ vault_nas_path | default('/Volume2/Media') }}"
+    nas_mount: /mnt/artie
+    media_user: media
+    media_uid: 1001
+    media_gid: 1001
+
+  tasks:
+    - name: Install NFS client packages
+      apt:
+        name:
+          - nfs-common
+          - cifs-utils
+        state: present
+
+    - name: Create NFS mount point
+      file:
+        path: "{{ nas_mount }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create media directory structure
+      file:
+        path: "{{ nas_mount }}/{{ item }}"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0755'
+      loop:
+        - downloads
+        - downloads/complete
+        - downloads/incomplete
+        - downloads/watch
+        - movies
+        - tv
+        - music
+        - books
+      ignore_errors: yes  # In case NFS isn't mounted yet
+
+    - name: Configure NFS mount in fstab
+      lineinfile:
+        path: /etc/fstab
+        line: >-
+          {{ nas_host }}:{{ nas_path }} {{ nas_mount }} nfs4
+          rw,relatime,vers=4.1,rsize=131072,wsize=131072,namlen=255,soft,proto=tcp,timeo=600,retrans=2,sec=sys,_netdev 0 0
+        create: yes
+        backup: yes
+
+    - name: Mount NFS share
+      mount:
+        path: "{{ nas_mount }}"
+        src: "{{ nas_host }}:{{ nas_path }}"
+        fstype: nfs4
+        opts: rw,relatime,vers=4.1,rsize=131072,wsize=131072,namlen=255,soft,proto=tcp,timeo=600,retrans=2,sec=sys,_netdev
+        state: mounted
+
+    - name: Set proper permissions on mounted NFS
+      file:
+        path: "{{ nas_mount }}/{{ item }}"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0755'
+      loop:
+        - downloads
+        - downloads/complete
+        - downloads/incomplete
+        - downloads/watch
+      ignore_errors: yes  # Permissions might be controlled by NAS
+
+    - name: Create local backup directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ media_user }}"
+        group: "{{ media_user }}"
+        mode: '0755'
+      loop:
+        - /opt/media-server/backups
+        - /opt/media-server/backups/configs
+        - /opt/media-server/backups/databases
+
+    - name: Create storage monitoring script
+      copy:
+        dest: /opt/media-server/check-storage.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Storage Health Check Script
+
+          echo "=== Storage Status Check ==="
+          date
+          echo
+
+          echo "Local Disk Usage:"
+          df -h / | tail -1
+          echo
+
+          echo "NFS Mount Status:"
+          if mountpoint -q {{ nas_mount }}; then
+              echo "✓ NFS mounted at {{ nas_mount }}"
+              echo "NFS Usage:"
+              df -h {{ nas_mount }} | tail -1
+              echo
+
+              echo "Download Directory Status:"
+              ls -la {{ nas_mount }}/downloads/ 2>/dev/null | head -10
+          else
+              echo "✗ NFS not mounted!"
+              echo "Attempting to remount..."
+              mount {{ nas_mount }}
+          fi
+          echo
+
+          echo "Docker Volume Usage:"
+          docker system df 2>/dev/null || echo "Docker not running"
+          echo
+
+          echo "Backup Directory Status:"
+          du -sh /opt/media-server/backups/* 2>/dev/null || echo "No backups found"
+
+    - name: Create automated backup script
+      copy:
+        dest: /opt/media-server/backup-configs.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Automated Configuration Backup Script
+
+          BACKUP_DIR="/opt/media-server/backups"
+          DATE=$(date +%Y%m%d_%H%M%S)
+
+          echo "Starting backup at $(date)"
+
+          # Create timestamped backup directory
+          mkdir -p "$BACKUP_DIR/configs_$DATE"
+
+          # Backup Docker Compose configurations
+          if [ -d "/opt/media-server/configs" ]; then
+              echo "Backing up Docker configurations..."
+              tar -czf "$BACKUP_DIR/configs_$DATE/docker-configs.tar.gz" \
+                  -C /opt/media-server configs/ 2>/dev/null
+          fi
+
+          # Backup important system configurations
+          echo "Backing up system configurations..."
+          mkdir -p "$BACKUP_DIR/configs_$DATE/system"
+
+          # Copy important system files
+          cp /etc/fstab "$BACKUP_DIR/configs_$DATE/system/" 2>/dev/null
+          cp /etc/systemd/system/media-server.service "$BACKUP_DIR/configs_$DATE/system/" 2>/dev/null
+
+          # Export Docker Compose environment
+          if [ -f "/opt/media-server/.env" ]; then
+              cp /opt/media-server/.env "$BACKUP_DIR/configs_$DATE/system/docker.env"
+          fi
+
+          # Backup to NAS if available
+          if mountpoint -q {{ nas_mount }}; then
+              echo "Copying backup to NAS..."
+              mkdir -p {{ nas_mount }}/backups/media-server
+              cp -r "$BACKUP_DIR/configs_$DATE" "{{ nas_mount }}/backups/media-server/"
+          fi
+
+          # Cleanup old backups (keep last 7 days)
+          find $BACKUP_DIR -name "configs_*" -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null
+
+          echo "Backup completed at $(date)"
+          echo "Backup location: $BACKUP_DIR/configs_$DATE"
+
+    - name: Create systemd service for config backup
+      copy:
+        dest: /etc/systemd/system/backup-configs.service
+        content: |
+          [Unit]
+          Description=Media Server Configuration Backup
+          After=network.target media-server.service
+
+          [Service]
+          Type=oneshot
+          ExecStart=/opt/media-server/backup-configs.sh
+          User=root
+
+    - name: Create systemd timer for config backup
+      copy:
+        dest: /etc/systemd/system/backup-configs.timer
+        content: |
+          [Unit]
+          Description=Run configuration backup daily
+          Requires=backup-configs.service
+
+          [Timer]
+          OnCalendar=daily
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable backup timer
+      systemd:
+        name: backup-configs.timer
+        enabled: yes
+        daemon_reload: yes
+        state: started
+
+    - name: Create disk cleanup script
+      copy:
+        dest: /opt/media-server/cleanup-disk.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Disk Cleanup Script
+
+          echo "Starting disk cleanup at $(date)"
+
+          # Clean Docker
+          echo "Cleaning Docker resources..."
+          docker system prune -f
+          docker volume prune -f
+          docker image prune -a -f
+
+          # Clean logs
+          echo "Cleaning logs..."
+          journalctl --vacuum-time=7d
+
+          # Clean apt cache
+          echo "Cleaning package cache..."
+          apt-get clean
+          apt-get autoremove -y
+
+          # Clean temporary files
+          echo "Cleaning temporary files..."
+          find /tmp -type f -mtime +7 -delete 2>/dev/null
+          find /var/tmp -type f -mtime +7 -delete 2>/dev/null
+
+          echo "Disk cleanup completed at $(date)"
+          df -h /
+
+    - name: Test NFS connectivity
+      command: ls -la "{{ nas_mount }}"
+      register: nas_test
+      changed_when: false
+      failed_when: false
+
+    - name: Display NFS test result
+      debug:
+        msg: >-
+          {{ 'NFS mount successful' if nas_test.rc == 0
+          else 'NFS mount failed - check network and NAS configuration' }}

@@ -1,0 +1,51 @@
+=== Overview
+
+A simple Visual Studio Code Server image that allows the use of VSC on your lcao machine via a browser
+
+
+=== Usage
+
+*Quickest* 
+
+. `docker compose up -d`  
+. and `docker compose down` to stop
+
+Then browse to http://localhost:8080 and password `r3dh4t1!`
+(Password is set in `config/config/code-server/config.yaml`)
+
+==== _very_ Long Hand
+
+[source,sh]
+----
+docker run -d --rm 
+  --name vscode-server \
+  -p 8080:8080 \
+  --hostname devops \
+  -v "$(pwd)/config:/home/devops/.config" \
+  -e "DOCKER_USER=$USER" \
+  quay.io/tonykay/rhel-vsc-code-server:latest
+----
+
+#### TODO document changing your password
+
+### Misc
+
+* Uses Red Hat ubi 9 image as its base
+** See Dockerfile(s)
+* Supports ubi tooling
+
+=== TODO
+
+* Add Extensions e.g. Ansible, Kubernetes, Adoc etc etc
+* Abuse Makefile as local CI/CD e.g. `make pipeline`
+* Multi-arch building
+** ARM v8 Done
+** Legacy AMDx64 Done
+* Hostname - Nice to Have
+** Done
+* Utility tooling - make "VM like"
+* Ansible tooling - or child image?
+** Added latest and greatest
+* OpenShift/K8S tooling - or child image?
+* SBOM generation
+** Basics - cyclonedx via (shh) `syft` & `grype`

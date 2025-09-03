@@ -1,0 +1,13 @@
+services:
+  code-server:
+    image: dockerhub.io/tonykay/rhel9-code-server-base:v0.0.1
+    container_name: code-server
+    hostname: code-server
+    volumes:
+      - .:/home/devops/project
+    ports:
+      - 8110:8080
+    environment:
+      - "DOCKER_USER="vpcuser"
+      - "PASSWORD="Password123."
+    restart: "unless-stopped"

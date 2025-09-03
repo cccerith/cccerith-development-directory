@@ -1,0 +1,61 @@
+---
+# Global variables for all hosts
+
+# System Configuration
+system_timezone: Australia/Sydney
+media_user: media
+media_uid: 1001
+media_gid: 1001
+
+# Network Configuration
+local_network: 192.168.69.0/24
+nas_host: artopolis.local
+nas_path: /Volume2/Media
+nas_mount: /mnt/artie
+
+# Docker Configuration
+docker_dir: /opt/media-server
+docker_compose_version: "2.23.0"
+
+# Service Ports
+ports:
+  sonarr: 8989
+  radarr: 7878
+  prowlarr: 9696
+  bazarr: 6767
+  transmission: 9091
+  nzbget: 6789
+  overseerr: 5055
+  flaresolverr: 8191
+  grafana: 3000
+
+# VPN Configuration
+vpn:
+  provider: protonvpn
+  config_file: proton.conf
+  server_countries: Switzerland
+
+# Backup Configuration
+backup:
+  enabled: true
+  retention_days: 7
+  local_path: /opt/media-server/backups
+  nas_path: /mnt/artie/backups/media-server
+
+# Monitoring Configuration
+monitoring:
+  health_check_interval: "15min"
+  network_check_interval: "5min"
+  backup_schedule: daily
+
+# Security Configuration
+security:
+  ufw_enabled: true
+  fail2ban_enabled: true
+  auto_updates: true
+
+# Performance Tuning
+performance:
+  swappiness: 10
+  network_buffers: true
+  docker_logging: true
